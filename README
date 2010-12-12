@@ -1,0 +1,4 @@
+# Install
+
+% make
+% mkdir -p ~/bin && mv canything ~/bin
