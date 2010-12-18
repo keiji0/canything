@@ -2,21 +2,27 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ncurses.h>
+#include <unistd.h>
 
 static void readfile();
 static void inittty(const char *ttyfile, const char *ttyname);
 static void endtty();
 static int inputloop();
 
-#define STDBUFCOLUMMAX 255
-#define STDBUFLINEMAX 1000
-char stdbuf[STDBUFLINEMAX][STDBUFCOLUMMAX];
+#define STDBUFCOLUMMAX 512
+#define STDBUFLINEMAX 256
+int stdbuflength = 1012;
+char **stdbuf = NULL;
 int stdbufl = 0;
 
 static void readfile(){
   int i = 0;
-  while ((fgets(stdbuf[i], STDBUFCOLUMMAX, stdin) != NULL) || STDBUFLINEMAX < i)
+  stdbuf = calloc(sizeof(char *), stdbuflength);
+  while (fgets(stdbuf[i] = malloc(STDBUFLINEMAX), STDBUFLINEMAX, stdin) != NULL) {
+    if (stdbuflength <= i)
+      stdbuf = realloc(stdbuf, (stdbuflength = 2 * stdbuflength) * sizeof(char *));
     i++;
+  }
   stdbufl = i;
 }
 
@@ -41,7 +47,7 @@ static void endtty(){
 }
 
 static int inputloop(){
-  int key;
+  int key = 0;
   int here = 0;
   int curline = 0;
   int showlinemax = 0;
@@ -72,10 +78,15 @@ static int inputloop(){
     case '':
       here = 0;
       goto refresh;
+
+    /* case KEY_STAB: */
+    /*   goto refresh; */
       
     case '\n': case KEY_IL:
       endtty();
-      fwrite(stdout, stdbuf[realcurline], strlen(stdbuf[realcurline])-1, 0, stdout);
+      showlinemax ?
+        fputs(stdbuf[realcurline], stdout):
+        fputs(selectbuf, stdout);
       exit(0);
       
     default:
@@ -116,6 +127,7 @@ static int inputloop(){
       refresh();
     }
   }
+  return 0;
 }
 
 int main(int argc, const char **argv){

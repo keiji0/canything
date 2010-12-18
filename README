@@ -1,4 +1,7 @@
 # Install
 
-% make
-% mkdir -p ~/bin && mv canything ~/bin
+    % make
+    % mkdir -p ~/bin && mv canything ~/bin
+    # Setup global alias
+    % echo "alias -g CA='| canything $TTY $TERM'" >> ~/.zshrc
+    % source ~/.zshrc
