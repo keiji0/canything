@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ncurses.h>
 #include <unistd.h>
+#include <locale.h>
 
 static void readfile();
 static void inittty(const char *ttyfile, const char *ttyname);
@@ -29,13 +30,14 @@ static void readfile(){
 FILE *oldout;
 
 static void inittty(const char *ttyfile, const char *ttyname){
+  setlocale( LC_ALL, "" );
   readfile();
   FILE *termfd = fopen(ttyfile, "r+w");
   if (isatty(1))
     stdout = termfd;
   else
     setbuf(termfd, NULL);
-  newterm(ttyname, termfd, termfd);
+  newterm((char *)ttyname, termfd, termfd);
   raw();
   noecho();
   cbreak();
@@ -131,7 +133,7 @@ static int inputloop(){
 }
 
 int main(int argc, const char **argv){
-  inittty(argv[1], argv[2]);
+  inittty("/dev/tty", getenv("TERM"));
   int retid = inputloop();
   endtty();
   return retid;
