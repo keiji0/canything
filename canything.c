@@ -146,6 +146,15 @@ static int inputloop(){
       query[queryindex][here] = '\0';
       goto refresh;
 
+    case '':
+      if (queryindex < 1)
+        here = 0;
+      else {
+        queryindex--;
+        here = strlen(query[queryindex]);
+      }
+      goto refresh;
+
     /* case KEY_STAB: */
     /*   goto refresh; */
       
