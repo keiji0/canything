@@ -21,23 +21,23 @@ char **stdbuf = NULL;
 int stdbufl = 0;
 
 struct Option {
-	int ignorecase;
+  int ignorecase;
 } option = {
-	/* ignorecase */ 0,
+  /* ignorecase */ 0,
 };
 
 static void initoption(int i, const char **argv){
-	while (--i) {
-		if ('-' == *argv[i]) {
-			if (strcmp("-i", argv[i]) == 0) {
-				option.ignorecase = 1;
-			}
-		}
-	}
+  while (--i) {
+    if ('-' == *argv[i]) {
+      if (strcmp("-i", argv[i]) == 0) {
+        option.ignorecase = 1;
+      }
+    }
+  }
 }
 
 static void readfile(){
-	int buflen = 1012;
+  int buflen = 1012;
   int i = 0;
   stdbuf = calloc(sizeof(char *), buflen);
   while (fgets(stdbuf[i] = malloc(STDBUFLINEMAX), STDBUFLINEMAX, stdin) != NULL) {
@@ -70,19 +70,19 @@ static void endtty(){
 }
 
 static void strtolower(const char *src, char *dst){
-	char c;
-	while ((c = *src++))
-		*dst++ = tolower(c);
-	*dst++ = '\0';
+  char c;
+  while ((c = *src++))
+    *dst++ = tolower(c);
+  *dst++ = '\0';
 }
 
 static char *istrstr(const char *src, const char *dst){
-	char srcbuf[STDBUFCOLUMMAX];
-	char dstbuf[STDBUFCOLUMMAX];
-	strtolower(src, srcbuf);
-	strtolower(dst, dstbuf);
-	char *res = strstr(srcbuf, dstbuf);
-	return (char *)(res ? src + (res - srcbuf) : NULL);
+  char srcbuf[STDBUFCOLUMMAX];
+  char dstbuf[STDBUFCOLUMMAX];
+  strtolower(src, srcbuf);
+  strtolower(dst, dstbuf);
+  char *res = strstr(srcbuf, dstbuf);
+  return (char *)(res ? src + (res - srcbuf) : NULL);
 }
 
 static int inputloop(){
@@ -130,7 +130,7 @@ static int inputloop(){
       
     default:
       selectbuf[here++] = key;
-			goto refresh;
+      goto refresh;
       
     refresh:
       selectbuf[here] = '\0';
@@ -171,7 +171,7 @@ static int inputloop(){
 }
 
 int main(int argc, const char **argv){
-	initoption(argc, argv);
+  initoption(argc, argv);
   inittty("/dev/tty", getenv("TERM"));
   int retid = inputloop();
   endtty();
