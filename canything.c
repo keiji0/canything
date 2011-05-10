@@ -5,6 +5,7 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <locale.h>
+#include <sys/ioctl.h>
 
 #define STDBUFCOLUMMAX 512
 #define STDBUFLINEMAX 256
@@ -134,6 +135,9 @@ static int inputloop(){
       
     refresh:
       selectbuf[here] = '\0';
+      /* Get window size */
+      struct winsize wsize;
+      ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize);
       {
         int i = 0;
         int cl = 0;
@@ -143,6 +147,9 @@ static int inputloop(){
         char *offset;
         while (i < stdbufl) {
           if ((offset = (option.ignorecase ? istrstr : strstr)(stdbuf[i], selectbuf))) {
+            /* Break over terminal height */
+            if (wsize.ws_row < (cl + 2))
+              break;
             if (curline == cl) {
               realcurline = i;
               attron(A_STANDOUT);
