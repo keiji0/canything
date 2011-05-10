@@ -12,16 +12,16 @@ static int inputloop();
 
 #define STDBUFCOLUMMAX 512
 #define STDBUFLINEMAX 256
-int stdbuflength = 1012;
 char **stdbuf = NULL;
 int stdbufl = 0;
 
 static void readfile(){
+	int buflen = 1012;
   int i = 0;
-  stdbuf = calloc(sizeof(char *), stdbuflength);
+  stdbuf = calloc(sizeof(char *), buflen);
   while (fgets(stdbuf[i] = malloc(STDBUFLINEMAX), STDBUFLINEMAX, stdin) != NULL) {
-    if (stdbuflength <= i)
-      stdbuf = realloc(stdbuf, (stdbuflength = 2 * stdbuflength) * sizeof(char *));
+    if (buflen <= i)
+      stdbuf = realloc(stdbuf, (buflen = 2 * buflen) * sizeof(char *));
     i++;
   }
   stdbufl = i;
