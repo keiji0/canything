@@ -9,6 +9,8 @@
 
 #define STDBUFCOLUMMAX 512
 #define STDBUFLINEMAX 256
+#define QUERYANDMAX 10
+#define QUERYITEMSIZEMAX 50
 
 static void initoption(int argc, const char **argv);
 static void readfile();
@@ -52,8 +54,7 @@ static void readfile(){
 FILE *oldout;
 
 static void inittty(const char *ttyfile, const char *ttyname){
-  setlocale( LC_ALL, "" );
-  readfile();
+  setlocale(LC_ALL, "");
   FILE *termfd = fopen(ttyfile, "r+w");
   if (isatty(1))
     stdout = termfd;
@@ -86,13 +87,33 @@ static char *istrstr(const char *src, const char *dst){
   return (char *)(res ? src + (res - srcbuf) : NULL);
 }
 
+static void printmatchline(const char *line, int selected, const char **highlights){
+  attr_t attr = selected ? A_STANDOUT : A_NORMAL;
+  attron(attr);
+  {
+    addstr(line);
+    int x, y;
+    getyx(stdscr, y, x);
+    const char *cur, *pos;
+    while ((cur = *highlights++)) {
+      pos = istrstr(line, cur);
+      move(y - 1, pos - line);
+      chgat(strlen(cur), A_UNDERLINE | attr, 0, NULL);
+    }
+    move(y, x);
+  }
+  attroff(attr);
+}
+
 static int inputloop(){
   int key = 0;
   int here = 0;
   int curline = 0;
   int showlinemax = 0;
   int realcurline = 0;
-  char selectbuf[STDBUFCOLUMMAX];
+
+  char query[QUERYANDMAX][QUERYITEMSIZEMAX];
+  int queryindex = 0;
   
   goto refresh;
 
@@ -102,8 +123,12 @@ static int inputloop(){
       return 1;
       
     case KEY_BACKSPACE: case '':
-      if (here > 0) here--;
-      selectbuf[here] = '\0';
+      if (here > 0) {
+        here--;
+        query[queryindex][here] = '\0';
+      } else if (queryindex > 0) {
+        here = strlen(query[--queryindex]);
+      }
       curline = 0;
       goto refresh;
       
@@ -117,6 +142,8 @@ static int inputloop(){
 
     case '':
       here = 0;
+      queryindex = 0;
+      query[queryindex][here] = '\0';
       goto refresh;
 
     /* case KEY_STAB: */
@@ -124,53 +151,73 @@ static int inputloop(){
       
     case '\n': case KEY_IL:
       endtty();
-      showlinemax ?
-        fputs(stdbuf[realcurline], stdout):
-        fputs(selectbuf, stdout);
+      if (showlinemax)
+        fputs(stdbuf[realcurline], stdout);
+      else {
+        int i;
+        for (i = 0; i < queryindex; i++)
+          fputs(query[i], stdout);
+      }
       exit(0);
       
+    case ' ':
+      here = 0;
+      queryindex++;
+      query[queryindex][here] = '\0';
+      goto refresh;
+
     default:
-      selectbuf[here++] = key;
+      query[queryindex][here++] = key;
+      query[queryindex][here] = '\0';
       goto refresh;
       
     refresh:
-      selectbuf[here] = '\0';
+      query[queryindex][here] = '\0';
+      query[queryindex+1][0] = '\0';
       /* Get window size */
-      struct winsize wsize;
-      ioctl(STDOUT_FILENO, TIOCGWINSZ, &wsize);
+      int winy = getmaxy(stdscr);
+      erase();
+      move(1, 0);
       {
         int i = 0;
         int cl = 0;
-        int selectbuflen = strlen(selectbuf);
-        erase();
-        move(1, 0);
-        char *offset;
         while (i < stdbufl) {
-          if ((offset = (option.ignorecase ? istrstr : strstr)(stdbuf[i], selectbuf))) {
-            /* Break over terminal height */
-            if (wsize.ws_row < (cl + 2))
-              break;
-            if (curline == cl) {
-              realcurline = i;
-              attron(A_STANDOUT);
+          int qi, matchflag = 1;
+          for (qi = 0; qi <= queryindex; qi++) {
+            if (!(option.ignorecase ? istrstr : strstr)(stdbuf[i], query[qi]))
+              matchflag = 0;
+          }
+          if (matchflag) {
+            int selected = curline == cl;
+            if (winy < (cl + 2)) break;
+            if (selected) realcurline = i;
+            {
+              const char *highlights[QUERYITEMSIZEMAX];
+              int qii;
+              for (qii = 0; qii <= queryindex; qii++)
+                highlights[qii] = query[qii];
+              highlights[qii] = NULL;
+              printmatchline(stdbuf[i], selected, highlights);
             }
-            char *a = stdbuf[i];
-            addnstr(a, offset - a);
-            attron(A_UNDERLINE);
-            addnstr(a + (offset - a), selectbuflen);
-            attroff(A_UNDERLINE);
-            addstr(a + (offset - a) + selectbuflen);
-            if (curline == cl)
-              attroff(A_STANDOUT);
             cl++;
           }
           i++;
         }
         showlinemax = cl;
       }
+      int pl = 0;
       move(0, 0);
-      printw(": %s\n", selectbuf);
-      move(0, here+2);
+      addstr(": ");
+      pl += 1;
+      int qi;
+      for (qi = 0; qi <= queryindex; qi++) {
+        addstr(query[qi]);
+        pl += strlen(query[qi]);
+        addstr(" ");
+        pl += 1;
+      }
+      addstr("\n");
+      move(0, pl);
       refresh();
     }
   }
@@ -179,6 +226,7 @@ static int inputloop(){
 
 int main(int argc, const char **argv){
   initoption(argc, argv);
+  readfile();
   inittty("/dev/tty", getenv("TERM"));
   int retid = inputloop();
   endtty();
