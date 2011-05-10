@@ -1,19 +1,40 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <ncurses.h>
 #include <unistd.h>
 #include <locale.h>
 
+#define STDBUFCOLUMMAX 512
+#define STDBUFLINEMAX 256
+
+static void initoption(int argc, const char **argv);
 static void readfile();
 static void inittty(const char *ttyfile, const char *ttyname);
 static void endtty();
+static void strtolower(const char *src, char *dst);
+static char *istrstr(const char *src, const char *dst);
 static int inputloop();
 
-#define STDBUFCOLUMMAX 512
-#define STDBUFLINEMAX 256
 char **stdbuf = NULL;
 int stdbufl = 0;
+
+struct Option {
+	int ignorecase;
+} option = {
+	/* ignorecase */ 0,
+};
+
+static void initoption(int i, const char **argv){
+	while (--i) {
+		if ('-' == *argv[i]) {
+			if (strcmp("-i", argv[i]) == 0) {
+				option.ignorecase = 1;
+			}
+		}
+	}
+}
 
 static void readfile(){
 	int buflen = 1012;
@@ -46,6 +67,22 @@ static void inittty(const char *ttyfile, const char *ttyname){
 
 static void endtty(){
   endwin();
+}
+
+static void strtolower(const char *src, char *dst){
+	char c;
+	while ((c = *src++))
+		*dst++ = tolower(c);
+	*dst++ = '\0';
+}
+
+static char *istrstr(const char *src, const char *dst){
+	char srcbuf[STDBUFCOLUMMAX];
+	char dstbuf[STDBUFCOLUMMAX];
+	strtolower(src, srcbuf);
+	strtolower(dst, dstbuf);
+	char *res = strstr(srcbuf, dstbuf);
+	return (char *)(res ? src + (res - srcbuf) : NULL);
 }
 
 static int inputloop(){
@@ -93,6 +130,7 @@ static int inputloop(){
       
     default:
       selectbuf[here++] = key;
+			goto refresh;
       
     refresh:
       selectbuf[here] = '\0';
@@ -104,7 +142,7 @@ static int inputloop(){
         move(1, 0);
         char *offset;
         while (i < stdbufl) {
-          if ((offset = strstr(stdbuf[i], selectbuf))) {
+          if ((offset = (option.ignorecase ? istrstr : strstr)(stdbuf[i], selectbuf))) {
             if (curline == cl) {
               realcurline = i;
               attron(A_STANDOUT);
@@ -133,6 +171,7 @@ static int inputloop(){
 }
 
 int main(int argc, const char **argv){
+	initoption(argc, argv);
   inittty("/dev/tty", getenv("TERM"));
   int retid = inputloop();
   endtty();
