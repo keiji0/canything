@@ -79,8 +79,8 @@ static void strtolower(const char *src, char *dst){
 }
 
 static char *istrstr(const char *src, const char *dst){
-  char srcbuf[STDBUFCOLUMMAX];
-  char dstbuf[STDBUFCOLUMMAX];
+  static char srcbuf[STDBUFCOLUMMAX];
+  static char dstbuf[STDBUFCOLUMMAX];
   strtolower(src, srcbuf);
   strtolower(dst, dstbuf);
   char *res = strstr(srcbuf, dstbuf);
@@ -119,7 +119,7 @@ static int inputloop(){
 
   while ((key = getch())) {
     switch (key) {
-    case KEY_BREAK: case '': case '': case '':
+    case KEY_BREAK: case '': case '':
       return 1;
       
     case KEY_BACKSPACE: case '':
@@ -140,7 +140,7 @@ static int inputloop(){
       if (curline > 0) curline--;
       goto refresh;
 
-    case '':
+    case '': case '':
       here = 0;
       queryindex = 0;
       query[queryindex][here] = '\0';
