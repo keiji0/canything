@@ -2,10 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <ncurses.h>
 #include <unistd.h>
 #include <locale.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <curses.h>
+#else
 #include <sys/ioctl.h>
+#include <ncurses.h>
+#endif
 
 #define STDBUFCOLUMMAX 512
 #define STDBUFLINEMAX 256
@@ -55,12 +60,21 @@ FILE *oldout;
 
 static void inittty(const char *ttyfile, const char *ttyname){
   setlocale(LC_ALL, "");
+#ifdef _WIN32
+  HANDLE h = CreateConsoleScreenBuffer(
+     GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER,
+    NULL);
+  SetStdHandle(STD_OUTPUT_HANDLE, h);
+  freopen("CONIN$", "r", stdin);
+  newterm((char *)ttyname, stdin, stdout);
+#else
   FILE *termfd = fopen(ttyfile, "r+w");
   if (isatty(1))
     stdout = termfd;
   else
     setbuf(termfd, NULL);
   newterm((char *)ttyname, termfd, termfd);
+#endif
   raw();
   noecho();
   cbreak();
@@ -158,7 +172,7 @@ static int inputloop(){
     /* case KEY_STAB: */
     /*   goto refresh; */
       
-    case '\n': case KEY_IL:
+    case '\n': case '\r': case KEY_IL:
       endtty();
       if (showlinemax)
         fputs(stdbuf[realcurline], stdout);
