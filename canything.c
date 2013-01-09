@@ -62,8 +62,8 @@ static void inittty(const char *ttyfile, const char *ttyname){
   setlocale(LC_ALL, "");
 #ifdef _WIN32
   HANDLE h = CreateConsoleScreenBuffer(
-     GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER,
-    NULL);
+    GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+    NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
   SetStdHandle(STD_OUTPUT_HANDLE, h);
   freopen("CONIN$", "r", stdin);
   newterm((char *)ttyname, stdin, stdout);
