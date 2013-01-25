@@ -1,7 +1,11 @@
 ifeq ($(OS),Windows_NT)
-LIBS=-lpdcurses -lkernel32
+  LIBS=-lpdcurses -lkernel32
 else
-LIBS=-lncursesw
+  ifeq ($(shell uname -s),Darwin)
+    LIBS=-lncurses
+  else
+    LIBS=-lncursesw
+  endif
 endif
 
 canything: canything.c
